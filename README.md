@@ -24,6 +24,14 @@ The install never overwrites anything it did not put there. If a target already 
 
 After a Herdr update, rerun `./install.sh`. It rebuilds the `lazygit` layout from Herdr's latest default layout.
 
+## Updates
+
+To hear about new versions, choose **Watch → Custom → Releases** on this repo's GitHub page. To update, run this in your clone:
+
+```sh
+git pull && ./install.sh
+```
+
 ## Use
 
 1. Open a space on a git repo.
