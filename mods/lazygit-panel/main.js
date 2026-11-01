@@ -213,7 +213,7 @@ export default class LazygitPanel extends View {
     const row = h_flex().id("lazygit-bar").size_full().min_w(0).px(10).gap(6).items_center()
       .bg(t.chrome).border_b(1).border_color(t.border).text_size(12);
     const head = (el) => el
-      .child(svg("mods/lazygit-tabs/lazygit.svg").size(14).flex_none().text_color(t.muted))
+      .child(svg("mods/lazygit-button/lazygit.svg").size(14).flex_none().text_color(t.muted))
       .child(div().flex_none().text_color(t.foreground).child("Lazygit"));
     if (v.kind === "repo") {
       const restart = div().id("lazygit-restart").size(22).flex_none().flex().items_center().justify_center().rounded(6)

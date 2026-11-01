@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Removes the Lazygit panel: switches Herdr back to main, ends the lazygit terminals this mod started,
-# and removes its two mod folders and its layout. Only files this install put there are removed.
+# and removes its mods and its layout. Only files this install put there are removed.
 set -uo pipefail
 
 HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
-MODS=(lazygit-tabs lazygit-panel)
+MODS=(lazygit-panel lazygit-button lazygit-tabs) # lazygit-tabs: the clone from earlier versions
 MARK=".herdr-lazygit"
 LAYOUT="$HOME_DIR/layouts/lazygit.json"
 
@@ -42,7 +42,7 @@ for m in "${MODS[@]}"; do
   fi
 done
 
-if [ -f "$LAYOUT" ] && grep -q '"lazygit-tabs"' "$LAYOUT"; then
+if [ -f "$LAYOUT" ] && grep -q -e '"lazygit-panel"' -e '"lazygit-tabs"' "$LAYOUT"; then
   rm -f "$LAYOUT"
   echo "removed layouts/lazygit.json"
 elif [ -e "$LAYOUT" ]; then

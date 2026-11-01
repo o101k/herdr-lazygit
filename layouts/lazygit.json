@@ -87,15 +87,33 @@
       "resizable": false,
       "children": [
         {
-          "id": "tabs",
-          "type": "block",
+          "id": "tab-bar",
+          "type": "row",
           "size": {
             "px": 42
           },
-          "window_drag": true,
-          "content": {
-            "mod": "lazygit-tabs"
-          }
+          "resizable": false,
+          "children": [
+            {
+              "id": "tabs",
+              "type": "block",
+              "window_drag": true,
+              "content": {
+                "mod": "tabs"
+              }
+            },
+            {
+              "id": "lazygit-button",
+              "type": "block",
+              "size": {
+                "px": 92
+              },
+              "window_drag": true,
+              "content": {
+                "mod": "lazygit-button"
+              }
+            }
+          ]
         },
         {
           "id": "work-body",
