@@ -22,6 +22,18 @@ if herdr-app do layout.switch --name main >/dev/null 2>&1; then
   echo "Herdr is back on the main layout."
 fi
 
+# The button added "lazygit" to Herdr's workspace.panels so its tab bar restores the page per space.
+# Herdr keeps shared state in memory, so a running Herdr may write the entry back until it restarts.
+SHARED="$HOME_DIR/shared.json"
+if [ -f "$SHARED" ] && command -v jq >/dev/null 2>&1 && jq -e '(.["workspace.panels"] // []) | index("lazygit")' "$SHARED" >/dev/null 2>&1; then
+  tmp="$(mktemp)"
+  if jq -c '.["workspace.panels"] |= map(select(. != "lazygit"))' "$SHARED" >"$tmp"; then
+    cat "$tmp" >"$SHARED"
+    echo "removed lazygit from workspace.panels (if Herdr is running, quit and reopen it)"
+  fi
+  rm -f "$tmp"
+fi
+
 if command -v hc >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   for addr in $(labelled_addresses); do
     hc kill "$addr" >/dev/null 2>&1

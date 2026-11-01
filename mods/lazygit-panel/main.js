@@ -6,6 +6,7 @@ import { spaces, panes, focused, exec, run, theme, layout, terminals, shared, ho
 const TERM = "lazygit-term"; // the layout block that shows the terminal
 const LABEL_SPACE = "herdr-lazygit.space";
 const LABEL_REPO = "herdr-lazygit.repo";
+const SYNC_MS = 16; // a terminal write waits this long, so it never overwrites the tab bar's restore
 const RETRY_MS = 3000; // at most one (re)start per space + repo this often
 const stop = (_e, cx) => cx.stop_propagation();
 
@@ -36,19 +37,25 @@ function folderOf(space) {
   return panes().find((p) => tabs.has(p.tab) && p.cwd)?.cwd || space.folder || home();
 }
 
+// The terminal block already shows `address` (or is hidden when `address` is null).
+const matches = (node, address) => !node || (address ? !node.hidden && node.content?.terminal === address : !!node.hidden);
+
 const lastPart = (path) => path.replace(/\/+$/, "").split("/").pop() || path;
 
 export default class LazygitPanel extends View {
   init() {
-    this.key = null; // space id + folder last resolved
-    this.repo = null; // { key, root }: what git said for `key` (root null: not a repo)
+    this.key = null; // space id + folder last seen
+    this.roots = new Map(); // folder -> repo root, or null when not a repo (what git last said)
+    this.resolving = new Set(); // folders git is being asked about
     this.terms = {}; // space id + repo root -> { address, at }
     this.view = null; // what the bar shows
     this.starting = false; // a start or restart is in flight
     this.cleaning = false; // a stale-terminal cleanup is in flight
     this.error = null;
     this.retry = null; // pending retry timer
-    this.set = null; // { json, at } of the last layout.set
+    this.set = null; // { json, from, at } of the last terminal write, while it may not have landed
+    this.want = null; // { spaceId, address }: what the terminal block should show
+    this.syncing = null; // the pending terminal write
   }
 
   render(cx) {
@@ -87,33 +94,41 @@ export default class LazygitPanel extends View {
     this.cleanup(cx);
     if (space.machine) {
       this.view = { kind: "remote" };
-      return this.syncTerm(root, null);
+      return this.syncTerm(space.id, null, cx);
     }
     const folder = folderOf(space);
     const key = `${space.id}\n${folder}`;
+    // A known folder is shown at once from the cache; git checks it again in the background.
     if (this.key !== key) {
       this.key = key;
-      this.resolve(key, folder, cx);
+      this.resolve(folder, cx);
     }
-    if (this.repo?.key !== key) {
+    const repo = this.roots.get(folder);
+    if (repo === undefined) {
+      // First look at this folder: show this space's lazygit if it has one, and never another space's.
       this.view = { kind: "checking", folder };
-      return;
+      const live = terminals().find((x) => x.state === "live" && x.labels?.[LABEL_SPACE] === space.id);
+      return this.syncTerm(space.id, live?.address ?? null, cx);
     }
-    if (!this.repo.root) {
+    if (!repo) {
       this.view = { kind: "norepo", folder };
-      return this.syncTerm(root, null);
+      return this.syncTerm(space.id, null, cx);
     }
-    const repo = this.repo.root;
     const tkey = `${space.id}\n${repo}`;
     const address = this.addressFor(space.id, repo, tkey, cx);
     this.view = { kind: "repo", repo, space: space.id, tkey, address };
-    this.syncTerm(root, address);
+    this.syncTerm(space.id, address, cx);
   }
 
-  resolve(key, folder, cx) {
+  resolve(folder, cx) {
+    if (this.resolving.has(folder)) return;
+    this.resolving.add(folder);
     cx.spawn(async (cx) => {
       const r = await exec("git", ["-C", folder, "rev-parse", "--show-toplevel"]).catch(() => null);
-      this.repo = { key, root: r?.code === 0 ? r.stdout.trim() || null : null };
+      const repo = r?.code === 0 ? r.stdout.trim() || null : null;
+      this.resolving.delete(folder);
+      if (this.roots.get(folder) === repo) return;
+      this.roots.set(folder, repo);
       cx.notify();
     });
   }
@@ -192,15 +207,34 @@ export default class LazygitPanel extends View {
   }
 
   // Makes the layout's terminal block show `address`, or hide it when `address` is null.
-  // Writes the layout only when it differs, and never into a layout other than this one.
-  syncTerm(root, address) {
-    const node = find(root, TERM);
-    if (!node || shared("layout") !== "lazygit") return;
+  // layout.set replaces the whole tree, so the write waits a moment and is built from a fresh layout():
+  // on a space switch Herdr's tab bar restores that space's panel in the same frame, and a tree read
+  // before its restore landed would undo it. The write is dropped if the space or page changed meanwhile.
+  syncTerm(spaceId, address, cx) {
+    this.want = { spaceId, address };
+    if (this.syncing || matches(find(layout(), TERM), address)) return;
+    this.syncing = cx.timer.after(SYNC_MS, (cx) => {
+      this.syncing = null;
+      const { spaceId, address } = this.want ?? {};
+      const root = layout();
+      const panel = find(root, "panel"), body = find(root, "panel-body"), node = find(root, TERM);
+      if (!node || shared("layout") !== "lazygit") return;
+      if (spaces().find((s) => s.active)?.id !== spaceId) return;
+      if (body?.active !== "lazygit" || panel?.hidden) return;
+      this.writeTerm(root, node, address);
+    });
+  }
+
+  // Writes the layout only when the terminal block differs from what is wanted.
+  writeTerm(root, node, address) {
+    if (matches(node, address)) return;
     const hidden = !address;
-    if (!!node.hidden === hidden && (hidden || node.content?.terminal === address)) return;
+    // Skip only a repeat of a write that hasn't landed yet. Once the node has changed since, write
+    // again at once, so quick A -> B -> A switches never leave B's terminal on screen.
     const json = JSON.stringify([address, hidden]);
-    if (this.set?.json === json && Date.now() - this.set.at < 2000) return;
-    this.set = { json, at: Date.now() };
+    const from = JSON.stringify(node);
+    if (this.set?.json === json && this.set.from === from && Date.now() - this.set.at < 2000) return;
+    this.set = { json, from, at: Date.now() };
     const next = JSON.parse(JSON.stringify(root));
     const n = find(next, TERM);
     n.hidden = hidden;

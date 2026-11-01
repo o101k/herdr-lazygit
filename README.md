@@ -32,15 +32,15 @@ After a Herdr update, rerun `./install.sh`. It rebuilds the layout from Herdr's 
 
 Each space and repo has its own lazygit, which keeps running when you switch spaces. When you quit lazygit (`q`), clicking the button again starts a new one. Pressing `q` while the panel shows lazygit also brings a new one back.
 
-Switching spaces brings back each space's panel: Files, Changes, or Lazygit, as you left it. Lazygit is remembered per space by this mod. Files and Changes are remembered by Herdr.
+Switching spaces brings back each space's panel: Files, Changes, or Lazygit, as you left it. Herdr's own tab bar does this for all three, in the same frame as the switch, so the panel never closes and reopens.
 
 If the space is not in a git repo, the bar says "Not a git repository" and no lazygit starts. Remote spaces (on another machine) show "Lazygit panel supports local spaces only".
 
 ## How it works
 
 - **Herdr's own tab bar is used unchanged.** The layout puts Herdr's `tabs` block in a `tab-bar` row, followed by a `lazygit-button` block. Herdr's tab bar keeps updating with Herdr, and the button sits beside it as its own block.
-- **`mods/lazygit-button`** draws the button, matched to Herdr's panel buttons. It opens and closes the Lazygit page of the panel. It remembers, per space, whether Lazygit was open, and reopens it after Herdr has restored that space's panel.
-- **`mods/lazygit-panel`** is the controller. While the panel shows lazygit, it finds the repo with `git rev-parse --show-toplevel` and looks for a live core terminal labelled `herdr-lazygit.space` and `herdr-lazygit.repo`. If there is none, it starts `lazygit` with `hc run --bg` and those labels, then points the terminal block at it with `layout.set`. Terminals for spaces that no longer exist are killed.
+- **`mods/lazygit-button`** draws the button, matched to Herdr's panel buttons. It opens and closes the Lazygit page of the panel. It also adds `lazygit` to Herdr's `workspace.panels` setting. Herdr's tab bar already saves which panel page each space had open, but on a switch it restores only the pages in that list. Its Files and Changes buttons are hard-coded, so the extra entry adds no second button.
+- **`mods/lazygit-panel`** is the controller. While the panel shows lazygit, it finds the repo with `git rev-parse --show-toplevel` and looks for a live core terminal labelled `herdr-lazygit.space` and `herdr-lazygit.repo`. If there is none, it starts `lazygit` with `hc run --bg` and those labels, then points the terminal block at it with `layout.set`. Terminals for spaces that no longer exist are killed. Repo roots are cached per folder, so a switch to a space seen before shows its lazygit at once, while git checks the folder again in the background. The `layout.set` waits about 16 ms and is built from a fresh layout, so it never undoes the panel that Herdr's tab bar has just restored.
 - **`scripts/make-layout.py`** builds `layouts/lazygit.json` from a `main` layout. The reference copy in this repo was built from the `main` layout on the day it was committed.
 
 When lazygit ends while the panel shows it (for example, `q` or `hc kill`), Herdr removes the terminal block and the panel column around it from the layout. The controller puts both back with `layout.set` and starts a new lazygit within a few seconds.
@@ -61,7 +61,8 @@ Add it to the `children` of `tab-bar`, after `lazygit-button`.
 - The layout is built when you run `install.sh`. It is not kept in sync with Herdr's `main` between installs. Rerun `./install.sh` after a Herdr update.
 - Local spaces only. Remote spaces are not supported.
 - One lazygit per space and repo. Starts are limited to one per 3 seconds per space and repo, so a lazygit that exits at once (for example, if it is not installed) does not spawn in a loop.
-- The Lazygit button's per-space memory lives in the button mod's browser storage. It survives restarts, but not a reinstall that clears the mod.
+- `install.sh` rebuilds the layout with the panel closed, so the active space is remembered as closed after a reinstall. Other spaces keep their panel.
+- `workspace.panels` keeps `lazygit` after you switch back to Herdr's `main` layout. There, a space that had Lazygit open opens the panel on Files or Changes. `uninstall.sh` removes the entry; if Herdr is running, quit and reopen it afterwards.
 
 ## Uninstall
 
@@ -69,4 +70,4 @@ Add it to the `children` of `tab-bar`, after `lazygit-button`.
 ./uninstall.sh
 ```
 
-This switches Herdr back to `main`, ends the lazygit terminals the panel started, and removes the mod folders and the layout. It removes only files marked as installed by this mod. It also removes the `lazygit-tabs` mod from earlier versions, if it is one of ours.
+This switches Herdr back to `main`, ends the lazygit terminals the panel started, removes `lazygit` from `workspace.panels`, and removes the mod folders and the layout. It removes only files marked as installed by this mod. It also removes the `lazygit-tabs` mod from earlier versions, if it is one of ours.
