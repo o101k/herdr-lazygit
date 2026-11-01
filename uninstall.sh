@@ -19,7 +19,7 @@ labelled_addresses() {
 }
 
 if herdr-app do layout.switch --name main >/dev/null 2>&1; then
-  echo "Herdr is back on the main layout."
+  echo "Herdr is back on its default main layout."
 fi
 
 # The button added "lazygit" to Herdr's workspace.panels so its tab bar restores the page per space.

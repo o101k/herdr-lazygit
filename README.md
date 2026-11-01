@@ -18,11 +18,11 @@ cd herdr-lazygit
 ./install.sh
 ```
 
-The install copies two mods into `~/.config/herdr-app` (or `$HERDR_APP_HOME`), builds the `lazygit` layout from your current `main` layout, checks the mods with `herdr-app check`, and switches Herdr to the `lazygit` layout. Switch back any time with `ctrl-shift-l`.
+The install copies two mods into `~/.config/herdr-app` (or `$HERDR_APP_HOME`), builds a new `lazygit` layout as a copy of Herdr's default `main` layout, checks the mods with `herdr-app check`, and switches Herdr to the `lazygit` layout. Herdr's own `main` layout is only read, never changed. Switch between the two any time with `ctrl-shift-l`.
 
 The install never overwrites anything it did not put there. If a target already exists and is not from this mod, it stops and tells you which path to move.
 
-After a Herdr update, rerun `./install.sh`. It rebuilds the layout from Herdr's latest `main`.
+After a Herdr update, rerun `./install.sh`. It rebuilds the `lazygit` layout from Herdr's latest default layout.
 
 ## Use
 
@@ -70,4 +70,4 @@ Add it to the `children` of `tab-bar`, after `lazygit-button`.
 ./uninstall.sh
 ```
 
-This switches Herdr back to `main`, ends the lazygit terminals the panel started, removes `lazygit` from `workspace.panels`, and removes the mod folders and the layout. It removes only files marked as installed by this mod. It also removes the `lazygit-tabs` mod from earlier versions, if it is one of ours.
+This switches Herdr back to its default `main` layout (which the install never changed), ends the lazygit terminals the panel started, removes `lazygit` from `workspace.panels`, and removes the mod folders and the layout. It removes only files marked as installed by this mod. It also removes the `lazygit-tabs` mod from earlier versions, if it is one of ours.
