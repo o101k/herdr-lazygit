@@ -38,6 +38,7 @@ A Lazygit button in the top tab bar, next to Files and Changes. Clicking it open
 - **Check for the shared layout name**: the controller writes the layout only when `shared("layout") === "lazygit"`. Do not write another layout.
 - **A start can fail silently**: if `lazygit` is not on PATH, the terminal exits at once. The controller retries at most once every 3 seconds. The bar shows the error only when `hc` itself fails.
 - **Keep `herdr-app check` passing** for both mods after any edit.
+- **Herdr drops the terminal block when its terminal ends while shown**, along with the `panel` column around the stack (the stack moves up and keeps its 520 px). Find nodes by id and rebuild them when missing. Don't require `panel` to exist before showing lazygit.
 - **Use `git -C <folder>`**, not `cd`: `exec` runs in the app's environment and the folder can change while the mod runs.
 - **Don't make the bar draw a timer**: nothing polls. Everything reacts in `render`.
 - **`hc ls --json` doesn't print labels.** Read them with `hc get <t> --json`, or filter with `hc ls --label k=v`.
@@ -47,4 +48,5 @@ A Lazygit button in the top tab bar, next to Files and Changes. Clicking it open
 - `herdr-app check` passes for `mods/lazygit-tabs` and `mods/lazygit-panel`, and `herdr-app status` shows `"errors": []` after the layout is switched to `lazygit`.
 - The tab bar shows Files, Changes and Lazygit in that order, and clicking Lazygit opens the right panel with lazygit's Status, Files, Branches and Commits boxes.
 - For a space in a git repo, `hc ls --all --json --label herdr-lazygit.space=<id>` shows exactly one live lazygit terminal, and it stays one after 5 seconds.
+- After `hc kill` of the panel's lazygit, within about 5 seconds a new live lazygit with the same labels is shown in the panel. Repeating the kill recovers again, and there is never more than one live lazygit for that space.
 - For a space on `/tmp`, the bar reads "Not a git repository: /private/tmp" and no lazygit terminal exists for that space.

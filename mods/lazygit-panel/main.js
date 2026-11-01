@@ -18,6 +18,15 @@ function find(node, id) {
   return null;
 }
 
+function parentOf(node, id) {
+  for (const child of node?.children ?? []) {
+    if (child.id === id) return node;
+    const found = parentOf(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
 // Where lazygit opens: the focused pane's folder when it is in this space, else the space's first
 // pane with a folder, else the space's own folder.
 function folderOf(space) {
@@ -47,8 +56,30 @@ export default class LazygitPanel extends View {
     const root = layout();
     const panel = find(root, "panel"), body = find(root, "panel-body");
     const space = spaces().find((s) => s.active);
-    if (space && panel && !panel.hidden && body?.active === "lazygit") this.work(space, root, cx);
+    // The app drops a shown terminal block when its terminal ends, and with it the panel column
+    // around the stack. Without the column the stack is still shown; put the layout back first.
+    const onLazygit = !!body && body.active === "lazygit" && shared("layout") === "lazygit";
+    if (onLazygit && !panel) this.heal(root);
+    const showing = onLazygit && (!panel || !panel.hidden);
+    if (space && showing) this.work(space, root, cx);
     return this.bar(t, cx);
+  }
+
+  // Puts back what the app removed: the panel column around the stack, and the terminal block on the lazygit page.
+  heal(root) {
+    const next = JSON.parse(JSON.stringify(root));
+    const body = find(next, "panel-body"), parent = parentOf(next, "panel-body");
+    if (parent && !find(next, "panel")) {
+      const size = body.size ?? { px: 520 };
+      delete body.size;
+      parent.children[parent.children.indexOf(body)] = { id: "panel", type: "column", size, min: 280, max: 900, children: [body] };
+    }
+    const page = find(next, "lazygit");
+    if (page && !find(next, TERM)) page.children.push({ id: TERM, type: "block", hidden: true, content: { terminal: "none" } });
+    const json = JSON.stringify(next);
+    if (this.healed?.json === json && Date.now() - this.healed.at < 2000) return;
+    this.healed = { json, at: Date.now() };
+    run("layout.set", { layout: next });
   }
 
   // Runs only while the panel shows lazygit. Decides what the bar says and which terminal the block shows.

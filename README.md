@@ -38,6 +38,8 @@ If the space is not in a git repo, the bar says "Not a git repository" and no la
 - **`layouts/lazygit.json`** is a clone of the `main` layout. Its right panel is wider (520 px) and has a `lazygit` page: a 30 px bar (`lazygit-panel`) over a terminal block (`lazygit-term`).
 - **`mods/lazygit-panel`** is the controller. While the panel shows lazygit, it finds the repo with `git rev-parse --show-toplevel` and looks for a live core terminal labelled `herdr-lazygit.space` and `herdr-lazygit.repo`. If there is none, it starts `lazygit` with `hc run --bg` and those labels, then points the terminal block at it with `layout.set`. Terminals for spaces that no longer exist are killed.
 
+When lazygit ends while the panel shows it (for example, `q` or `hc kill`), Herdr removes the terminal block and the panel column around it from the layout. The controller puts both back with `layout.set` and starts a new lazygit within a few seconds.
+
 ## Limitations
 
 - The layout is a copy of `main` at install time. It does not pick up later changes Herdr makes to `main`. Re-run `./install.sh` after updating Herdr to re-copy the tab bar, or change the layout by hand.
