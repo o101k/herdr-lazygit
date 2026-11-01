@@ -13,7 +13,7 @@ A Lazygit button for the [Herdr desktop app](https://herdr.dev). It sits in the 
 ## Install
 
 ```sh
-git clone https://github.com/omarkar101/herdr-lazygit
+git clone https://github.com/o101k/herdr-lazygit
 cd herdr-lazygit
 ./install.sh
 ```
