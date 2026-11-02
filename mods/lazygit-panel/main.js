@@ -57,8 +57,10 @@ function execOn(machine, folder, argv) {
 function hcError(r) {
   if (!r || r.code === 0) return null;
   for (const out of [r.stderr, r.stdout]) {
+    // The JSON is the last line; anything printed before it (warnings) is skipped.
+    const line = (out ?? "").trim().split("\n").pop();
     try {
-      const e = JSON.parse(out.trim()).error;
+      const e = JSON.parse(line).error;
       if (e?.message) return e;
     } catch {}
   }
@@ -169,7 +171,7 @@ export default class LazygitPanel extends View {
     if (this.resolving.has(fkey)) return;
     this.resolving.add(fkey);
     cx.spawn(async (cx) => {
-      const argv = machine ? ["git", "rev-parse", "--show-toplevel"] : ["git", "-C", folder, "rev-parse", "--show-toplevel"];
+      const argv = machine ? withLocalBin(["git", "rev-parse", "--show-toplevel"]) : ["git", "-C", folder, "rev-parse", "--show-toplevel"];
       let r = null, err = null;
       try {
         r = await execOn(machine, folder, argv);
@@ -177,12 +179,19 @@ export default class LazygitPanel extends View {
         err = String(e?.message ?? e);
       }
       this.resolving.delete(fkey);
-      // On a remote space, tell "not a repo" (git ran and said so, or the folder is gone) apart from
-      // "could not reach the machine".
+      // On a remote space, tell "not a repo" (git ran and said so, or the folder is gone: the only
+      // spawn_failed, since sh always starts) apart from "could not reach the machine" and "no git there"
+      // (sh's 127).
       const hcErr = machine ? hcError(r) : null;
-      if (machine && (err || (hcErr && hcErr.kind !== "spawn_failed"))) {
+      const why = !machine ? null
+        : err ?? (hcErr && hcErr.kind !== "spawn_failed" ? hcErr.message : null)
+        ?? (r?.code === 127 ? `git not found (${r.stderr?.trim() || "exit 127"})` : null);
+      if (why) {
+        // A folder seen before keeps its cached root, so one failed re-check doesn't hide a working
+        // lazygit; whether that terminal is live is checked on its own.
+        if (this.roots.get(fkey)) return;
         this.roots.delete(fkey);
-        this.unreachable.set(fkey, err ?? hcErr.message);
+        this.unreachable.set(fkey, why);
         return cx.notify();
       }
       this.unreachable.delete(fkey);
@@ -315,7 +324,8 @@ export default class LazygitPanel extends View {
       this.resolve(v.machine, v.folder, cx);
       return cx.notify();
     }
-    if (v?.kind !== "repo" || this.starting) return;
+    // While a remote lookup is in flight the found lazygit isn't known yet; a start now would leave it running.
+    if (v?.kind !== "repo" || this.starting || this.looking.has(v.tkey)) return;
     this.start(v.space, v.machine, v.repo, v.tkey, v.address, cx);
   }
 
