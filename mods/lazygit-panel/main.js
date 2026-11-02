@@ -53,15 +53,21 @@ function execOn(machine, folder, argv) {
 }
 
 // hc's own failure (unknown machine, missing folder, connection lost), which it prints as JSON
-// `{ error: { kind, message } }` on stdout. Null when the program itself ran.
+// `{ error: { kind, message } }` on stderr. Null when the program itself ran.
 function hcError(r) {
   if (!r || r.code === 0) return null;
-  try {
-    const e = JSON.parse(r.stdout).error;
-    if (e?.message) return e;
-  } catch {}
+  for (const out of [r.stderr, r.stdout]) {
+    try {
+      const e = JSON.parse(out.trim()).error;
+      if (e?.message) return e;
+    } catch {}
+  }
   return null;
 }
+
+// A remote machine's commands get a bare system PATH, without ~/.local/bin, where tools installed
+// without root usually live (hc itself, and lazygit from its release tarball).
+const withLocalBin = (argv) => ["sh", "-c", 'PATH="$HOME/.local/bin:$PATH" exec "$@"', "sh", ...argv];
 
 // A remote address is `machine/t7`.
 const isRemote = (address) => !!address && address.includes("/");
@@ -285,7 +291,7 @@ export default class LazygitPanel extends View {
           await exec("hc", ["rm", old]).catch(() => null);
         }
         const on = machine ? ["--on", machine] : [];
-        const r = await exec("hc", ["run", "--bg", "--json", "--no-parent", ...on, "--cwd", repo, "--label", `${LABEL_SPACE}=${spaceId}`, "--label", `${LABEL_REPO}=${repo}`, "--", "lazygit"]);
+        const r = await exec("hc", ["run", "--bg", "--json", "--no-parent", ...on, "--cwd", repo, "--label", `${LABEL_SPACE}=${spaceId}`, "--label", `${LABEL_REPO}=${repo}`, "--", ...(machine ? withLocalBin(["lazygit"]) : ["lazygit"])]);
         let address = r.code === 0 ? JSON.parse(r.stdout).address : null;
         if (!address) throw new Error(hcError(r)?.message || r.stderr?.trim() || `hc exited with ${r.code}`);
         if (machine && !isRemote(address)) address = `${machine}/${address}`;

@@ -49,7 +49,8 @@ A Lazygit button in the top bar, right after Herdr's Files and Changes buttons. 
 - **Use `git -C <folder>`**, not `cd`: `exec` runs in the app's environment and the folder can change while the mod runs.
 - **Don't make the bar draw a timer**: nothing polls. Everything reacts in `render`, apart from the one-shot terminal-write and retry timers.
 - **The app may not list other machines' terminals in `terminals()`.** For a remote address it doesn't list, ask `hc get <m>/<t>`, and only when the block is not showing it, at most once per 3 seconds. Never poll while it is shown: when it ends, the app drops the block, and that render asks again.
-- **hc prints its own errors as JSON on stdout** (`{"error":{"kind","message"}}`), not on stderr. `spawn_failed` from `hc exec --cwd` means the folder is gone: treat it as "not a repo", not as an unreachable machine.
+- **hc prints its own errors as JSON on stderr** (`{"error":{"kind","message"}}`), for `hc run` and `hc exec` alike.
+- **Remote commands get a bare system PATH**, without `~/.local/bin`. Start remote lazygit (and hc) through `sh -c 'PATH="$HOME/.local/bin:$PATH" exec "$@"'`. `spawn_failed` from `hc exec --cwd` means the folder is gone: treat it as "not a repo", not as an unreachable machine.
 - **`hc ls --json` doesn't print labels.** Read them with `hc get <t> --json`, or filter with `hc ls --label k=v`.
 
 ## Done when
