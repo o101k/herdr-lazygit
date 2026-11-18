@@ -54,7 +54,7 @@ Remote spaces (on another machine, such as a cloud machine added with `hc machin
 - **`mods/lazygit-panel`** is the controller. While the panel shows lazygit, it finds the repo with `git rev-parse --show-toplevel` and looks for a live core terminal labelled `herdr-lazygit.space` and `herdr-lazygit.repo`. If there is none, it starts `lazygit` with `hc run --bg` and those labels, then points the terminal block at it with `layout.set`. For a remote space, git runs through `hc exec --on <machine>` and lazygit through `hc run --on <machine>`, so the terminal lives on that machine and its address is `<machine>/t7`. Terminals for spaces that no longer exist are killed. Repo roots are cached per folder, so a switch to a space seen before shows its lazygit at once, while git checks the folder again in the background. The `layout.set` waits about 16 ms and is built from a fresh layout, so it never undoes the panel that Herdr's tab bar has just restored.
 - **`scripts/make-layout.py`** builds `layouts/lazygit.json` from a `main` layout. The reference copy in this repo was built from the `main` layout on the day it was committed.
 
-When lazygit ends while the panel shows it (for example, `q` or `hc kill`), Herdr removes the terminal block and the panel column around it from the layout. The controller puts both back with `layout.set` and starts a new lazygit within a few seconds.
+When lazygit ends while the panel shows it (for example, `q` or `hc kill`), Herdr removes the terminal block from the layout, and on some versions the panel column around it too. The controller puts both back with `layout.set` and starts a new lazygit within a few seconds.
 
 ## Adding more buttons
 

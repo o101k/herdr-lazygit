@@ -105,10 +105,11 @@ export default class LazygitPanel extends View {
     const root = layout();
     const panel = find(root, "panel"), body = find(root, "panel-body");
     const space = spaces().find((s) => s.active);
-    // The app drops a shown terminal block when its terminal ends, and with it the panel column
-    // around the stack. Without the column the stack is still shown; put the layout back first.
+    // The app drops a shown terminal block when its terminal ends, and on some versions the panel
+    // column around the stack too. Without the column the stack is still shown. Put back whichever
+    // is missing first.
     const onLazygit = !!body && body.active === "lazygit" && shared("layout") === "lazygit";
-    if (onLazygit && !panel) this.heal(root);
+    if (onLazygit && (!panel || !find(root, TERM))) this.heal(root);
     const showing = onLazygit && (!panel || !panel.hidden);
     if (space && showing) this.work(space, root, cx);
     return this.bar(t, cx);

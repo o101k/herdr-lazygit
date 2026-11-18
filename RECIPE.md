@@ -37,7 +37,7 @@ A Lazygit button in the top bar, right after Herdr's Files and Changes buttons. 
 
 ## Watch out
 
-- **Herdr drops the terminal block when its terminal ends while shown**, along with the `panel` column around the stack (the stack moves up and keeps its 520 px). Find nodes by id and rebuild them when missing. Don't require `panel` to exist before showing lazygit.
+- **Herdr drops the terminal block when its terminal ends while shown.** Some versions also drop the `panel` column around the stack (the stack moves up and keeps its 520 px). Herdr 0.1.16 keeps the column and drops only the block. Find nodes by id and rebuild whichever is missing: the `panel` column, the `lazygit-term` block, or both. Don't require `panel` to be missing before healing, or the page stays blank under the bar.
 - **Herdr's `tabs` mod restores only the pages in `workspace.panels`.** It records any `panel-body` child per space, but on a switch it treats a child that isn't listed as closed. Adding `"lazygit"` to the list makes it restore Lazygit too, in the same frame. It draws buttons only for `files` and `changes`, so no second button appears. Don't re-add a timer that reopens the page after the switch: that is the visible close-then-reopen.
 - **`layout.set` replaces the whole tree.** A tree read in the frame of a space switch is from before the tab bar's restore landed, and writing it undoes the restore. Defer the terminal write a moment (16 ms), re-read `layout()`, and drop it if the space changed or the panel no longer shows Lazygit. Never `cx.notify()` from that timer: it would loop.
 - **Don't add `herdr.space` or `herdr.tab` labels** to the lazygit terminal. Those make it a normal tab. Use only the `herdr-lazygit.*` labels.
