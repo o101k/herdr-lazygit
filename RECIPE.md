@@ -17,7 +17,7 @@ A Lazygit button in the top bar, right after Herdr's Files and Changes buttons. 
 ## How it behaves
 
 - Clicking **Lazygit** opens the panel on its Lazygit page. Clicking it again while the page is open closes the panel.
-- Opening the Lazygit page for a space runs `git rev-parse --show-toplevel` in that space's folder. The folder is the focused pane's folder if it is in this space, else the first pane's folder, else the space's folder.
+- Opening the Lazygit page for a space runs `git rev-parse --show-toplevel` in that space's folder. The folder is the focused pane's folder if a real pane (`focused().pane`) in this space is focused, else the active tab's first pane's folder, else the space's first pane's folder, else the space's folder.
 - If the folder is in a repo and no live lazygit exists for that space and repo, the mod starts `lazygit` in the repo root. The bar then shows the repo name and the terminal shows lazygit's own UI (Status, Files, Branches, Commits, Stash).
 - Switching spaces: Herdr's tab bar restores that space's panel (Files, Changes or Lazygit, or closed) in the same frame as the switch. The terminal block switches to that space's lazygit about 16 ms later, and at once from cache for any folder seen before. While a new folder is checked, the block shows this space's lazygit if it has one, and never another space's.
 - Each space and repo keeps its own lazygit running.

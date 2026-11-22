@@ -35,14 +35,22 @@ function machineOf(space) {
   return typeof m === "string" ? m : m.name ?? m.id ?? null;
 }
 
-// Where lazygit opens: the focused pane's folder when it is in this space, else the space's first
-// pane with a folder, else the space's own folder. A local space falls back to the home folder; a
-// remote one to "" (that machine's home: hc runs remote commands there by default).
+// Where lazygit opens: the focused pane's folder when it is in this space, else the active tab's
+// first pane with a folder, else any pane in this space with a folder, else the space's own folder.
+// Requiring `f.pane` avoids reading a layout terminal block's (such as lazygit's own) or overlay
+// window's cwd. A local space falls back to the home folder; a remote one to "" (that machine's
+// home: hc runs remote commands there by default).
 function folderOf(space, machine) {
   const f = focused();
-  if (f?.space === space.id && f.cwd) return f.cwd;
+  if (f?.pane && f.space === space.id && f.cwd) return f.cwd;
+  const all = panes();
+  const active = space.tabs.find((t) => t.active);
+  if (active) {
+    const cwd = all.find((p) => p.tab === active.id && p.cwd)?.cwd;
+    if (cwd) return cwd;
+  }
   const tabs = new Set(space.tabs.map((t) => t.id));
-  return panes().find((p) => tabs.has(p.tab) && p.cwd)?.cwd || space.folder || (machine ? "" : home());
+  return all.find((p) => tabs.has(p.tab) && p.cwd)?.cwd || space.folder || (machine ? "" : home());
 }
 
 // Runs a program in `folder`, here or on `machine`, and gives back { code, stdout, stderr }.
