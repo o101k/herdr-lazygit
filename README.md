@@ -6,7 +6,7 @@ A Lazygit button for the [Herdr desktop app](https://herdr.dev). It sits in the 
 
 ## Requirements
 
-- Herdr desktop app for macOS (v0.1.11 tested)
+- Herdr desktop app for macOS (v0.1.16 tested)
 - `lazygit` on your PATH (`brew install lazygit`)
 - For remote spaces: `git` and `lazygit` on that machine's PATH too
 - `git`, `python3` (used by `install.sh`), and `jq` (used by `uninstall.sh`)
